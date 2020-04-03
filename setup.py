@@ -4,11 +4,11 @@ setup(
     name="goaidet",
     version="0.1",
     packages=find_packages(),
+	install_requires=['sgfmill','pandas','python3-wget']
 )
-!pip install pandas sgfmill python3-wget
 
 # Download the ELFv2 weights
-import os, wget, gzip, shutil
+import os, wget, gzip, shutil, wget
 if "elfv2" not in os.listdir():
     file = wget.download("http://zero.sjeng.org/networks/05dbca157002b9fd618145d22803beae0f7e4015af48ac50f246b9316e315544.gz")
     with gzip.open(file, 'rb') as f_in:
