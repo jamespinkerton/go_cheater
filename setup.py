@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name="goaidet",
     version="0.1",
-    packages=find_packages()
+    packages=['python3-wget', 'pandas', 'sgfmill'],
 )
 
 # Download the ELFv2 weights
