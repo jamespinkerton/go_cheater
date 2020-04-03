@@ -4,7 +4,7 @@ setup(
     name="goaidet",
     version="0.1",
     packages=find_packages(),
-    install_requires=['sgfmill','pandas','python3-wget']
+    install_requires=['sgfmill','pandas','python3-wget','GPUtil']
 )
 
 # Download the ELFv2 weights
