@@ -3,8 +3,9 @@ from setuptools import setup, find_packages
 setup(
     name="goaidet",
     version="0.1",
-    packages=['python3-wget', 'pandas', 'sgfmill'],
+    packages=find_packages(),
 )
+!pip install pandas sgfmill python3-wget
 
 # Download the ELFv2 weights
 import os, wget, gzip, shutil
