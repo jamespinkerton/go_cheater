@@ -2,31 +2,39 @@ from setuptools import setup, find_packages
 
 setup(
     name="goaidet",
-    version="0.1",
+    version="0.2",
     packages=find_packages(),
-    install_requires=['sgfmill','pandas','python3-wget','GPUtil']
+    install_requires=['sgfmill','pandas','python3-wget','GPUtil','requests']
 )
-
-# Download the ELFv2 weights
-import os, wget, gzip, shutil, wget
-if "elfv2" not in os.listdir():
-    file = wget.download("http://zero.sjeng.org/networks/05dbca157002b9fd618145d22803beae0f7e4015af48ac50f246b9316e315544.gz")
-    with gzip.open(file, 'rb') as f_in:
-        with open('elfv2', 'wb') as f_out:
-            shutil.copyfileobj(f_in, f_out)
-    os.remove(file)
 
 # Download and extract the Leela release
 # Also checks if the computer has one or more GPUs to determine which release to download
 import GPUtil
 from zipfile import ZipFile
-if "leela-zero-0.17-win64" not in os.listdir():
-    if GPUtil.getGPUs():
-         file = wget.download("https://github.com/leela-zero/leela-zero/releases/download/v0.17/leela-zero-0.17-cpuonly-win64.zip")
-    else:
-        file = wget.download("https://github.com/leela-zero/leela-zero/releases/download/v0.17/leela-zero-0.17-win64.zip")
-    with ZipFile('sampleDir.zip', 'r') as zipObj:
-        zipObj.extractall()
-    if "leela-zero-0.17-cpuonly-win64" in os.listdir():
-        os.rename("leela-zero-0.17-cpuonly-win64","leela-zero-0.17-win64")
-    os.remove(file)
+import os, wget, gzip, shutil, wget, requests
+
+if "leela-zero-0.17" not in os.listdir():
+    if "elfv2" not in os.listdir():
+        data = requests.get("https://zero.sjeng.org/best-network")
+        with open("saved_file.gz", "wb") as cur_file:
+            cur_file.write(data.content)
+        with gzip.open("saved_file.gz", 'rb') as f_in:
+            with open('elfv2', 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        os.remove("saved_file.gz")
+		
+    if os.name == 'nt':
+        if GPUtil.getGPUs():
+            file = wget.download("https://github.com/leela-zero/leela-zero/releases/download/v0.17/leela-zero-0.17-win64.zip")
+        else:
+            file = wget.download("https://github.com/leela-zero/leela-zero/releases/download/v0.17/leela-zero-0.17-cpuonly-win64.zip")
+        with ZipFile(file, 'r') as zipObj:
+            zipObj.extractall()
+        cur_folder = file[:-4]
+        os.rename(cur_folder,"leela-zero-0.17")
+
+    elif os.name == 'posix':
+        with ZipFile("leela_0.17_linux.zip", 'r') as zipObj:
+            zipObj.extractall()
+			
+    os.replace("./elfv2", "./leela-zero-0.17/elfv2")
