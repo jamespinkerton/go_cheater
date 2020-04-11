@@ -81,6 +81,8 @@ def get_moves_communicate_string(sgf_file):
 
 def get_csv_output(executable, playouts, weights, communicate_string, all_moves):
     """Primary function - first three parameters build the basic setup command, the latter two are used to run the CLI and generate the output CSV"""
+    if os.name == 'posix':
+        executable = "./" + executable
     run_string = "{} -g -p {} -w {} --noponder".format(executable, playouts, weights)
     print(run_string)
     os.chdir('./leela-zero-0.17')
