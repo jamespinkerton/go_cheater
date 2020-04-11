@@ -34,7 +34,7 @@ if "leela-zero-0.17" not in os.listdir():
         os.rename(cur_folder,"leela-zero-0.17")
 
     elif os.name == 'posix':
-        with ZipFile("leela_0.17_linux.zip", 'r') as zipObj:
+        with ZipFile("leela_zero_0.17_linux.zip", 'r') as zipObj:
             zipObj.extractall()
 			
     os.replace("./elfv2", "./leela-zero-0.17/elfv2")
