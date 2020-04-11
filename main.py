@@ -35,8 +35,14 @@ def get_moves_communicate_string(sgf_file):
     winner = game.get_winner()
     board_size = game.get_size()
     root_node = game.get_root()
-    b_player = root_node.get("PB")
-    w_player = root_node.get("PW")
+    try:
+        b_player = root_node.get("PB")
+    except:
+        b_player = "Unknown"
+    try:
+        w_player = root_node.get("PW")
+    except:
+        w_player = "Unknown"
     print("The Black player is: {}".format(b_player))
     print("The White player is: {}".format(w_player))
     print("The winner was: {}".format(winner))
