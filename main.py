@@ -2,6 +2,7 @@ import subprocess, os, argparse
 from sgfmill import sgf
 from scipy.stats import entropy
 import pandas as pd
+import GPUtil
 
 def main():
     parser = argparse.ArgumentParser()
@@ -81,17 +82,21 @@ def get_moves_communicate_string(sgf_file):
 
 def get_csv_output(executable, playouts, weights, communicate_string, all_moves):
     """Primary function - first three parameters build the basic setup command, the latter two are used to run the CLI and generate the output CSV"""
+    final_args = "--noponder"
     if os.name == 'posix':
-        executable = "./" + executable
-    run_string = "{} -g -p {} -w {} --noponder".format(executable, playouts, weights)
+        executable = "./leela-zero-0.17/" + executable
+        weights = "./leela-zero-0.17/" + weights
+    else:
+        os.chdir('./leela-zero-0.17')
+    if not GPUtil.getGPUs():
+        final_args += " --cpu-only"
+    run_string = "{} -g -p {} -w {} {}".format(executable, playouts, weights, final_args)
     print(run_string)
-    os.chdir('./leela-zero-0.17')
-    process = subprocess.Popen(run_string, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen(run_string, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     # For whatever reason, the data we want is stored in the error output stream
     (output, err) = process.communicate(bytes(communicate_string, encoding="utf-8"))
     # Decode from bytes, split by newlines
     process.kill()
-    os.chdir('..')
     raw_lines = err.decode("utf-8",errors="ignore").split("\n")
 	
     print("Raw Game Processing Complete...")
