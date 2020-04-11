@@ -146,8 +146,8 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
 
     df = pd.DataFrame(ai_moves_formatted)
     # Adding an extra column cause I want to easily see how many moves were equal in the output
-    df['is_same_move'] = df.apply(lambda x: 1 if (x['ai_move'] == x['human_move']) else 0, axis=1)
-    proper_order = ["move_number","color","ai_move","human_move","ai_percent","human_percent","entropy","is_same_move"]
+    #df['is_same_move'] = df.apply(lambda x: 1 if (x['ai_move'] == x['human_move']) else 0, axis=1)
+    proper_order = ["move_number","color","ai_move","human_move","ai_percent","human_percent","entropy"] #,"is_same_move"
     df = df[proper_order]
     return df
 
