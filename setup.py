@@ -1,10 +1,14 @@
 from setuptools import setup, find_packages
-
+import os
+if os.name == 'nt':
+    install_packages = ['sgfmill','pandas','python3-wget','GPUtil','requests','scipy','progressbar2','wexpect']
+else:
+    install_packages = ['sgfmill','pandas','python3-wget','GPUtil','requests','scipy','progressbar2','pexpect']
 setup(
     name="goaidet",
     version="0.2",
     packages=find_packages(),
-    install_requires=['sgfmill','pandas','python3-wget','GPUtil','requests','scipy','progressbar2','wexpect']
+    install_requires=[install_packages]
 )
 
 # Download and extract the Leela release
