@@ -142,7 +142,7 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
         ai_lcb_value = key_move.split("(LCB: ")[1].split("%")[0]
         
         move_info = {'move_number':y,'ai_move':ai_move,'ai_v_value':ai_v_value,
-                   'ai_n_value':ai_n_value,'ai_lcb_value':ai_lcb_value, 'human_move':human_move, 'color':y%2}
+                   'ai_n_value':ai_n_value,'ai_lcb_value':ai_lcb_value, 'human_move':human_move, 'color':colors[y%2]}
         is_match_found = False
         top_10_moves = extract_top_10_moves(before_text)
 
