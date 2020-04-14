@@ -108,13 +108,13 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
     run_string = "{} -g -r 0 -d -p {} -w {} {}".format(executable, playouts, weights, final_args)
     print(run_string)
     child = wexpect.spawn('cmd.exe')
-    child.expect('>')
+    child.expect('>', timeout=120)
     child.sendline(run_string)
-    child.expect('Setting max tree')
+    child.expect('Setting max tree', timeout=120)
     starting_commands = ["boardsize 19","clear_board","komi 7.5"]
     for command in starting_commands:
         child.sendline(command)
-        child.expect('=')
+        child.expect('=', timeout=120)
     all_moves, communicate_string = get_moves_communicate_string('D:/go_cheater_test/sample-1-maybecheat.sgf')
     communicate_string_list = communicate_string.split("\n")
     with open("command_log.log","w") as my_file:
@@ -127,7 +127,7 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
         y += 1
         human_move = communicate_string_list[x+2].split(" ")[2]
         child.sendline(communicate_string_list[x])
-        child.expect(" max depth")
+        child.expect(" max depth", timeout=120)
         before_text = [line.strip() for line in child.before.split("\n") if "->" in line]
         key_move = before_text[0]
         ai_move = key_move.split("->")[0].strip().lower()
@@ -159,7 +159,7 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
                 allowed_moves += "," + top_10_move['move_coord']
             human_command = human_command.replace("__",allowed_moves)
             child.sendline(human_command)
-            child.expect(" max depth")
+            child.expect(" max depth", timeout=120)
             before_text = [line.strip() for line in child.before.split("\n") if "->" in line]
             top_10_moves = extract_top_10_moves(before_text)
             is_found = False
@@ -179,7 +179,7 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
                 #print("***************************")
                 human_command = human_command.replace(allowed_moves,human_move)
                 child.sendline(human_command)
-                child.expect(" max depth")
+                child.expect(" max depth", timeout=120)
                 before_text = [line.strip() for line in child.before.split("\n") if "->" in line]
                 top_10_moves = extract_top_10_moves(before_text)
                 move_info['human_v_value'] = top_10_moves[0]['v_value']
@@ -190,7 +190,7 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
         all_moves.append(move_info)
         
         child.sendline(communicate_string_list[x+2])
-        child.expect('=')
+        child.expect('=', timeout=120)
     child.sendline('exit')
     df = pd.DataFrame(all_moves)
     column_order = ["move_number","human_move","ai_move","human_v_value","ai_v_value","human_n_value","ai_n_value","human_lcb_value","ai_lcb_value",'is_requery_needed']
