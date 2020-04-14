@@ -115,7 +115,7 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
     for command in starting_commands:
         child.sendline(command)
         child.expect('=', timeout=120)
-    all_moves, communicate_string = get_moves_communicate_string(sgf_file)
+
     communicate_string_list = communicate_string.split("\n")
     with open("command_log.log","w") as my_file:
         my_file.write("\n".join(communicate_string_list))
