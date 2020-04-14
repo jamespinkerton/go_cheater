@@ -58,6 +58,8 @@ def get_moves_communicate_string(sgf_file):
     for node in game.get_main_sequence()[1:]:
         idx += 1
         game_move = node.get_move()
+        if game_move[1] == None:
+            continue
         # Set who the current player and the other player is
         if game_move[0] == 'b':
             cur_player = 'black'
@@ -65,6 +67,7 @@ def get_moves_communicate_string(sgf_file):
         else:
             cur_player = 'white'
             other_player = 'black'
+        
         x_coord = let_num_convert[str(game_move[1][1] + 1)]
         
         cur_move = x_coord + str(game_move[1][0] + 1)
@@ -122,9 +125,11 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
     y = 0
     all_moves = []
     bar = pb.ProgressBar()
-
+    colors = ['white','black']
     for x in bar(range(0,len(communicate_string_list),3)):
         y += 1
+        if y == 181:
+            break
         human_move = communicate_string_list[x+2].split(" ")[2]
         child.sendline(communicate_string_list[x])
         child.expect(" max depth", timeout=120)
@@ -137,7 +142,7 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
         ai_lcb_value = key_move.split("(LCB: ")[1].split("%")[0]
         
         move_info = {'move_number':y,'ai_move':ai_move,'ai_v_value':ai_v_value,
-                   'ai_n_value':ai_n_value,'ai_lcb_value':ai_lcb_value, 'human_move':human_move}
+                   'ai_n_value':ai_n_value,'ai_lcb_value':ai_lcb_value, 'human_move':human_move, 'color':y%2}
         is_match_found = False
         top_10_moves = extract_top_10_moves(before_text)
 
@@ -193,7 +198,7 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
         child.expect('=', timeout=120)
     child.sendline('exit')
     df = pd.DataFrame(all_moves)
-    column_order = ["move_number","human_move","ai_move","human_v_value","ai_v_value","human_n_value","ai_n_value","human_lcb_value","ai_lcb_value",'is_requery_needed']
+    column_order = ["move_number","color","human_move","ai_move","human_v_value","ai_v_value","human_n_value","ai_n_value","human_lcb_value","ai_lcb_value",'is_requery_needed']
     df = df[column_order]
     return df
 
