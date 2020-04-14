@@ -9,7 +9,14 @@ python setup.py install
 ### *Basic Troubleshooting Tip*
 Depending on how permissions are setup on your machine, you may need to use *sudo* with setup.py install. If you do, you will then need to make sure the leelaz executable (go_cheater/leela-zero-0.17/leelaz) can be executed from your current user without sudo privledges.
 
-## Parameters
+## First Execution
+After it has been successfully installed, try to run it on the sample SGF file provided with the following basic command (within go_cheater):
+
+```
+python main.py -s sample.sgf -p 100
+```
+
+## Full Parameters List
 
 Once the install completes (it may take a few minutes, it has to download a few hundred megabytes), the documentation for running the program is below:
 
