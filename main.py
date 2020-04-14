@@ -14,7 +14,7 @@ def main():
     optional.add_argument("-p", "--playouts", help="set number of playouts; defaults to 1", default=1)
     optional.add_argument("-w", "--weights", help="indicate where the weights file is; defaults to elfv2 in the leela-zero-0.17 directory", default="elfv2")
     optional.add_argument("-o","--output", help="set the output CSV file; defaults to output_file.csv", default="output_file.csv")
-    optional.add_argument("-e","--executable", help="set the executable Go AI program filename (must have GTP extension lz-analyze); defaults to leela-zero-0.17-win64/leelaz", default="leelaz")
+    optional.add_argument("-e","--executable", help="set the executable Go AI program filename (must have GTP extension lz-analyze); defaults to leela-zero-0.17/leelaz", default="leelaz")
 
     required.add_argument("-s", "--sgf", help="indicate where the sgf file is", required=True)
     args = parser.parse_args()
