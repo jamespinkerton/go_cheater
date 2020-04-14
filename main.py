@@ -1,8 +1,7 @@
-import subprocess, os, argparse
+import subprocess, os, argparse, GPUtil, wexpect
 from sgfmill import sgf
-from scipy.stats import entropy
 import pandas as pd
-import GPUtil
+import progressbar as pb
 
 def main():
     parser = argparse.ArgumentParser()
@@ -55,6 +54,7 @@ def get_moves_communicate_string(sgf_file):
     communicate_string = ""
     idx = 0
     all_moves = []
+    basic_moves = []
     for node in game.get_main_sequence()[1:]:
         idx += 1
         game_move = node.get_move()
@@ -65,26 +65,35 @@ def get_moves_communicate_string(sgf_file):
         else:
             cur_player = 'white'
             other_player = 'black'
-        x_coord = let_num_convert[str(game_move[1][0] + 1)]
-
-        cur_move = x_coord + str(game_move[1][1] + 1)
-        # The very first move is unique since it requires an extra genmove command...
-        # Unfortunately, it's a bit awkward - for example, let's assume black has just played Q16. To determine the "AI probabilty" and then the
-        # "human probability", it does the following: for the human, have the human play their move then determine what the AI would want to play as the
-        # next white move. From there, invert the probability for the AI's choice to become P(b_win_human). For the AI, have the AI figure out its own
-        # black move, then have the AI figure out its own white move and invert the same way to determine P(b_win_ai)
-        # This is less than ideal and awkward, but I was unable to find a way to do it more intuitively via Go Text Protocol; open to ideas?
-        if idx == 1:
-            ai_command_1 = "genmove {}\ngenmove {}".format(cur_player, other_player)
-        else:
-            ai_command_1 = "genmove {}".format(other_player)
-        base_command = "play {} {}".format(cur_player, cur_move)
-        ai_command_2 = "genmove {}".format(other_player)
+        x_coord = let_num_convert[str(game_move[1][1] + 1)]
+        
+        cur_move = x_coord + str(game_move[1][0] + 1)
+        #
+        computers_move = 'lz-analyze 100 avoid {} pass,resign 1'.format(game_move[0])
+        #computers_move = 'genmove {}'.format(game_move[0])
+        # 
+        humans_move = 'lz-analyze 100 allow {} __ 1 avoid {} pass,resign 1'.format(game_move[0],game_move[0])
+        actually_play_move = 'play {} {}'.format(game_move[0],cur_move)
+        basic_moves.append(actually_play_move)
+        #computers_move = 'lz-analyze {}'.format(game_move[0])
+        
+        # avoid {} pass,resign 1
+        #humans_move = 'lz-genmove_analyze 100 allow {} {} 1'.format(game_move[0],cur_move,game_move[0])
+        
         all_moves.append({'color':cur_player,'current_move':cur_move})
-        communicate_string = "\n".join([communicate_string,ai_command_1,"undo","undo",base_command,ai_command_2])
+        communicate_string = "\n".join([communicate_string,computers_move,humans_move,actually_play_move])
     communicate_string = communicate_string[1:]
-
     return all_moves, communicate_string
+
+def extract_top_10_moves(before_text):
+    top_10_moves = []
+    for possible_move_string in before_text:
+        v_value = possible_move_string.split("(V: ")[1].split("%")[0]
+        n_value = possible_move_string.split("(N: ")[1].split("%")[0]
+        lcb_value = possible_move_string.split("(LCB: ")[1].split("%")[0]
+        move_coord = possible_move_string.split("->")[0].strip().lower()
+        top_10_moves.append({'v_value': float(v_value),'n_value': float(n_value),'lcb_value':float(lcb_value),'move_coord':move_coord})
+    return top_10_moves
 
 def get_csv_output(executable, playouts, weights, communicate_string, all_moves):
     """Primary function - first three parameters build the basic setup command, the latter two are used to run the CLI and generate the output CSV"""
@@ -96,65 +105,96 @@ def get_csv_output(executable, playouts, weights, communicate_string, all_moves)
         os.chdir('./leela-zero-0.17')
     if not GPUtil.getGPUs():
         final_args += " --cpu-only"
-    run_string = "{} -g -p {} -w {} {}".format(executable, playouts, weights, final_args)
+    run_string = "{} -g -r 0 -d -p {} -w {} {}".format(executable, playouts, weights, final_args)
     print(run_string)
-    process = subprocess.Popen(run_string, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    # For whatever reason, the data we want is stored in the error output stream
-    (output, err) = process.communicate(bytes(communicate_string, encoding="utf-8"))
-    # Decode from bytes, split by newlines
-    process.kill()
-    raw_lines = err.decode("utf-8",errors="ignore").split("\n")
-	
-    print("Raw Game Processing Complete...")
-    # Run through every line, finding lines that have the key information (i.e. where the AI moved and what the coordinate was)
-    computer_moves = []
-    for idx, line in enumerate(raw_lines):
-        if line.startswith("NN eval=") and line.endswith("\r"):
-            raw_move = raw_lines[idx+2].strip().replace("\r","")
-            coordinate = raw_move[0:3]
-            win_percent = raw_move.split("(V: ")[1].split("%")[0]			
-            computer_moves.append({'coordinate':coordinate,'win_percent':win_percent})
-
-    # With the raw extraction complete, now we need to format it prettily and merge it with our human move data
-    ai_moves_formatted = []
+    child = wexpect.spawn('cmd.exe')
+    child.expect('>')
+    child.sendline(run_string)
+    child.expect('Setting max tree')
+    starting_commands = ["boardsize 19","clear_board","komi 7.5"]
+    for command in starting_commands:
+        child.sendline(command)
+        child.expect('=')
+    all_moves, communicate_string = get_moves_communicate_string('D:/go_cheater_test/sample-1-maybecheat.sgf')
+    communicate_string_list = communicate_string.split("\n")
+    with open("command_log.log","w") as my_file:
+        my_file.write("\n".join(communicate_string_list))
     y = 0
-    for x in range(1,len(computer_moves),4):
+    all_moves = []
+    bar = pb.ProgressBar()
 
-        human_percent_b = round((100 - float(computer_moves[x+1]['win_percent'])) * 0.01, 3)
-        human_move = all_moves[y]['current_move'].strip()
-        ai_move = computer_moves[x-1]['coordinate'].lower().strip()
-        if human_move == ai_move:
-        	ai_percent_b = human_percent_b
-        else:
-        	ai_percent_b = round((100 - float(computer_moves[x]['win_percent'])) * 0.01, 3)
-
-        ai_moves_formatted.append({'move_number':y+1,'color':'black','ai_percent':ai_percent_b,
-                                  'human_percent': human_percent_b,'ai_move': ai_move,
-                                 'human_move':human_move,'entropy':round(entropy([ai_percent_b, human_percent_b]),4)})
+    for x in bar(range(0,len(communicate_string_list),3)):
+        y += 1
+        human_move = communicate_string_list[x+2].split(" ")[2]
+        child.sendline(communicate_string_list[x])
+        child.expect(" max depth")
+        before_text = [line.strip() for line in child.before.split("\n") if "->" in line]
+        key_move = before_text[0]
+        ai_move = key_move.split("->")[0].strip().lower()
         
-        if (x + 2) >= len(computer_moves):
-        	continue
-        try:
-            human_percent_w = round((100 - float(computer_moves[x+3]['win_percent'])) * 0.01, 3)
-            human_move = all_moves[y+1]['current_move'].strip()
-            ai_move = computer_moves[x]['coordinate'].lower().strip()
-        except:
-            print(computer_moves[x:x+4])
-        if human_move == ai_move:
-        	ai_percent_w = human_percent_w
-        else:
-        	ai_percent_w = round((100 - float(computer_moves[x+2]['win_percent'])) * 0.01, 3)
-          
-        ai_moves_formatted.append({'move_number':y+2,'color':'white','ai_percent': ai_percent_w,
-                                  'human_percent': human_percent_w,'ai_move': ai_move,
-                                 'human_move':human_move,'entropy':round(entropy([ai_percent_w, human_percent_w]),4)})
-        y += 2
+        ai_v_value = key_move.split("(V: ")[1].split("%")[0]
+        ai_n_value = key_move.split("(N: ")[1].split("%")[0]
+        ai_lcb_value = key_move.split("(LCB: ")[1].split("%")[0]
+        
+        move_info = {'move_number':y,'ai_move':ai_move,'ai_v_value':ai_v_value,
+                   'ai_n_value':ai_n_value,'ai_lcb_value':ai_lcb_value, 'human_move':human_move}
+        is_match_found = False
+        top_10_moves = extract_top_10_moves(before_text)
 
-    df = pd.DataFrame(ai_moves_formatted)
-    # Adding an extra column cause I want to easily see how many moves were equal in the output
-    #df['is_same_move'] = df.apply(lambda x: 1 if (x['ai_move'] == x['human_move']) else 0, axis=1)
-    proper_order = ["move_number","color","ai_move","human_move","ai_percent","human_percent","entropy"] #,"is_same_move"
-    df = df[proper_order]
+        for top_10_move in top_10_moves:
+            if top_10_move['move_coord'] == human_move:
+                move_info['is_requery_needed'] = 0
+                move_info['human_v_value'] = top_10_move['v_value']
+                move_info['human_n_value'] = top_10_move['n_value']
+                move_info['human_lcb_value'] = top_10_move['lcb_value']
+                is_match_found = True
+                
+        if not is_match_found:
+            human_command = communicate_string_list[x+1]
+            move_info['is_requery_needed'] = 0
+            sorted_top_10 = sorted(top_10_moves, key = lambda i: i['n_value'])
+            allowed_moves = human_move
+            lowest_n = sorted_top_10[0]['n_value']
+            for top_10_move in sorted_top_10[2:]:
+                allowed_moves += "," + top_10_move['move_coord']
+            human_command = human_command.replace("__",allowed_moves)
+            child.sendline(human_command)
+            child.expect(" max depth")
+            before_text = [line.strip() for line in child.before.split("\n") if "->" in line]
+            top_10_moves = extract_top_10_moves(before_text)
+            is_found = False
+            for top_10_move in top_10_moves:
+                if top_10_move['move_coord'] == human_move:
+                    move_info['human_v_value'] = top_10_move['v_value']
+                    move_info['human_n_value'] = top_10_move['n_value']
+                    move_info['human_lcb_value'] = top_10_move['lcb_value']
+                    is_found = True
+                    break
+                    
+            if not is_found:
+                #print("***************************")
+                #print(human_move)
+                #print(human_command)
+                #print(top_10_moves)
+                #print("***************************")
+                human_command = human_command.replace(allowed_moves,human_move)
+                child.sendline(human_command)
+                child.expect(" max depth")
+                before_text = [line.strip() for line in child.before.split("\n") if "->" in line]
+                top_10_moves = extract_top_10_moves(before_text)
+                move_info['human_v_value'] = top_10_moves[0]['v_value']
+                move_info['human_n_value'] = lowest_n
+                move_info['human_lcb_value'] = top_10_moves[0]['lcb_value']
+                move_info['is_requery_needed'] = 1
+
+        all_moves.append(move_info)
+        
+        child.sendline(communicate_string_list[x+2])
+        child.expect('=')
+    child.sendline('exit')
+    df = pd.DataFrame(all_moves)
+    column_order = ["move_number","human_move","ai_move","human_v_value","ai_v_value","human_n_value","ai_n_value","human_lcb_value","ai_lcb_value",'is_requery_needed']
+    df = df[column_order]
     return df
 
 if __name__ == "__main__":
