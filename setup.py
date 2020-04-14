@@ -4,7 +4,7 @@ setup(
     name="goaidet",
     version="0.2",
     packages=find_packages(),
-    install_requires=['sgfmill','pandas','python3-wget','GPUtil','requests','scipy']
+    install_requires=['sgfmill','pandas','python3-wget','GPUtil','requests','scipy','progressbar2','wexpect']
 )
 
 # Download and extract the Leela release
