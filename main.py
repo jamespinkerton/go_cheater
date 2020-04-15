@@ -7,6 +7,9 @@ from sgfmill import sgf
 import pandas as pd
 import progressbar as pb
 
+b_player = ""
+w_player = ""
+
 def main():
     parser = argparse.ArgumentParser()
     required = parser.add_argument_group('required arguments')
@@ -43,15 +46,18 @@ def generate_leela_commands(sgf_file):
     winner = game.get_winner()
     board_size = game.get_size()
     root_node = game.get_root()
+    
+    global b_player
+    global w_player
 
     try:
         b_player = root_node.get("PB")
     except:
-        b_player = "Unknown"
+        b_player = "Unknown1"
     try:
         w_player = root_node.get("PW")
     except:
-        w_player = "Unknown"
+        w_player = "Unknown2"
 
     print("The Black player is: {}".format(b_player))
     print("The White player is: {}".format(w_player))
@@ -199,9 +205,16 @@ def get_csv_output(executable, playouts, weights, communicate_string):
         ai_n_value = ai_first_choice_move.split("(N: ")[1].split("%")[0]
         ai_lcb_value = ai_first_choice_move.split("(LCB: ")[1].split("%")[0]
         
+        global b_player
+        global w_player
+        
+        if colors[y%2] == 'black':
+            player = b_player
+        else:
+            player = w_player
         # Begin construction of move_info, i.e. one row of data in our output spreadsheet
         move_info = {'move_number':y,'ai_move':ai_move_coords,'ai_v_value':ai_v_value,
-                   'ai_n_value':ai_n_value,'ai_lcb_value':ai_lcb_value, 'human_move':human_move, 'color':colors[y%2]}
+                   'ai_n_value':ai_n_value,'ai_lcb_value':ai_lcb_value, 'human_move':human_move, 'color':colors[y%2], 'player':player}
         
         # As a default, assume the human's move was NOT one of the those identified by Leela Zero. Also extract all 10 moves into a pretty list.
         is_match_found = False
@@ -282,7 +295,7 @@ def get_csv_output(executable, playouts, weights, communicate_string):
 
     # Generate the dataframe, organize the columns, and return the finished dataframe
     df = pd.DataFrame(all_moves)
-    column_order = ["move_number","color","human_move","ai_move","human_v_value","ai_v_value","human_n_value","ai_n_value","human_lcb_value","ai_lcb_value",'is_requery_needed']
+    column_order = ["move_number","color","human_move","ai_move","human_v_value","ai_v_value","human_n_value","ai_n_value","human_lcb_value","ai_lcb_value",'is_requery_needed','player']
     df = df[column_order]
     return df
 
