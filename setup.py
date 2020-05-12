@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 import os
 if os.name == 'nt':
-    install_packages = ['sgfmill','pandas','python3-wget','GPUtil','requests','scipy','progressbar2','wexpect']
+    install_packages = ['sgfmill','pandas','python3-wget','gputil','requests','scipy','progressbar2','wexpect']
 else:
-    install_packages = ['sgfmill','pandas','python3-wget','GPUtil','requests','scipy','progressbar2','pexpect']
+    install_packages = ['sgfmill','pandas','python3-wget','gputil','requests','scipy','progressbar2','pexpect']
 setup(
     name="goaidet",
     version="0.2",
